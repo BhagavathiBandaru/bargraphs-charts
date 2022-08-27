@@ -1,0 +1,471 @@
+import {Component} from 'react'
+import Loader from 'react-loader-spinner'
+
+import VaccinationCoverage from '../VaccinationCoverage'
+import VaccinationByGender from '../VaccinationByGender'
+import VaccinationByAge from '../VaccinationByAge'
+
+import './index.css'
+
+const apiStatusConstants = {
+  initial: 'INITIAL',
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+  inProgress: 'IN_PROGRESS',
+}
+
+class CowinDashboard extends Component {
+  state = {
+    apiStatus: apiStatusConstants.initial,
+    vaccinationData: {},
+  }
+
+  componentDidMount() {
+    this.getRequiredData()
+  }
+
+  getRequiredData = async () => {
+    this.setState({
+      apiStatus: apiStatusConstants.inProgress,
+    })
+
+    const vaccinationDataApiUrl = 'https://apis.ccbp.in/covid-vaccination-data'
+
+    const response = await fetch(vaccinationDataApiUrl)
+    if (response.ok === true) {
+      const fetchedData = await response.json()
+      const updatedData = {
+        last7DaysVaccination: fetchedData.last_7_days_vaccination.map(
+          eachItem => ({
+            vaccineDate: eachItem.vaccine_date,
+            dose1: eachItem.dose_1,
+            dose2: eachItem.dose_2,
+          }),
+        ),
+        vaccinationByAge: fetchedData.vaccination_by_age.map(ageRange => ({
+          age: ageRange.age,
+          count: ageRange.count,
+        })),
+        vaccinationByGender: fetchedData.vaccination_by_gender.map(
+          eachGender => ({
+            gender: eachGender.gender,
+            count: eachGender.count,
+          }),
+        ),
+      }
+      this.setState({
+        vaccinationData: updatedData,
+        apiStatus: apiStatusConstants.success,
+      })
+    } else {
+      this.setState({apiStatus: apiStatusConstants.failure})
+    }
+  }
+
+  renderFailureView = () => (
+    <div className="failure-view">
+      <img
+        className="failure-image"
+        src="https://assets.ccbp.in/frontend/react-js/api-failure-view.png"
+        alt="failure view"
+      />
+      <h1 className="failure-text">Something went wrong</h1>
+    </div>
+  )
+
+  renderVaccinationStats = () => {
+    const {vaccinationData} = this.state
+
+    return (
+      <>
+        <VaccinationCoverage
+          vaccinationCoverageData={vaccinationData.last7DaysVaccination}
+        />
+        <VaccinationByGender
+          vaccinationByGenderData={vaccinationData.vaccinationByGender}
+        />
+        <VaccinationByAge
+          vaccinationByAgeData={vaccinationData.vaccinationByAge}
+        />
+      </>
+    )
+  }
+
+  renderLoadingView = () => (
+    <div testid="loader">
+      <Loader type="ThreeDots" color="#ffffff" height={80} width={80} />
+    </div>
+  )
+
+  renderViewsBasedOnAPIStatus = () => {
+    const {apiStatus} = this.state
+
+    switch (apiStatus) {
+      case apiStatusConstants.success:
+        return this.renderVaccinationStats()
+      case apiStatusConstants.failure:
+        return this.renderFailureView()
+      case apiStatusConstants.inProgress:
+        return this.renderLoadingView()
+      default:
+        return null
+    }
+  }
+
+  render() {
+    return (
+      <div className="app-container">
+        <div className="display-block-container">
+          <div className="logo-container">
+            <img
+              className="img-logo"
+              src="https://assets.ccbp.in/frontend/react-js/cowin-logo.png"
+              alt="website logo"
+            />
+            <h1 className="logo-heading">Co-WIN</h1>
+          </div>
+          <h1 className="heading">CoWIN Vaccination in India</h1>
+          {this.renderViewsBasedOnAPIStatus()}
+        </div>
+      </div>
+    )
+  }
+}
+
+export default CowinDashboard
+
+
+
+
+index.css
+
+.app-container {
+  display: flex;
+  justify-content: center;
+  background-color: #161625;
+  min-height: 100vh;
+}
+
+.display-block-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 80%;
+  max-width: 1110px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.img-logo {
+  width: 50px;
+  height: 50px;
+}
+
+.logo-heading {
+  color: #2cc6c6;
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: bold;
+  font-size: 24px;
+  line-height: 1.5;
+  margin-left: 10px;
+}
+
+.heading {
+  color: #cbd5e1;
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 1.5;
+}
+
+.loading-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.img-logo {
+  height: 20px;
+  width: 20px;
+}
+
+.main-heading {
+  font-size: 20px;
+  font-family: 'Roboto';
+  color: #ffffff;
+}
+
+.error-view-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 48px;
+  padding-bottom: 64px;
+}
+
+@media screen and (min-width: 768px) {
+  .error-view-container {
+    margin-top: 0px;
+    margin-left: 30px;
+    width: 70%;
+    padding-bottom: 0;
+  }
+}
+
+.failure-img {
+  width: 250px;
+  height: 200px;
+}
+
+@media screen and (min-width: 768px) {
+  .failure-img {
+    width: 400px;
+    height: 350px;
+  }
+}
+
+.failure-heading-text {
+  color: #171f46;
+  font-family: 'Roboto';
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+@media screen and (min-width: 768px) {
+  .failure-heading-text {
+    font-size: 24px;
+  }
+}
+
+.failure-description {
+  text-align: center;
+  color: #64748b;
+  font-family: 'Roboto';
+  font-size: 14px;
+  width: 90%;
+  max-width: 288px;
+  line-height: 1.3;
+}
+
+@media screen and (min-width: 768px) {
+  .failure-description {
+    font-size: 18px;
+    width: 60%;
+    max-width: 466px;
+  }
+}
+****************************************VACCINATION BY AGE******************************
+index.js:---
+import {PieChart, Pie, Legend, Cell} from 'recharts'
+
+import './index.css'
+
+const VaccinationByAge = props => {
+  const {vaccinationByAgeData} = props
+
+  return (
+    <div className="vaccination-by-age-container">
+      <h1 className="vaccination-by-age-heading">Vaccination by Age</h1>
+      <PieChart width={1000} height={300}>
+        <Pie
+          cx="50%"
+          cy="30%"
+          data={vaccinationByAgeData}
+          outerRadius="60%"
+          dataKey="count"
+        >
+          <Cell name="18-44" fill="#2d87bb" />
+          <Cell name="44-60" fill=" #a3df9f" />
+          <Cell name="Above 60" fill=" #64c2a6" />
+        </Pie>
+
+        <Legend
+          iconType="circle"
+          layout="horizontal"
+          verticalAlign="middle"
+          align="right"
+          wrapperStyle={{fontSize: 12, fontFamily: 'Roboto'}}
+        />
+      </PieChart>
+    </div>
+  )
+}
+export default VaccinationByAge
+ index.css
+ .vaccination-by-age-container {
+  display: flex;
+  flex-direction: column;
+  background-color: #1c1c2b;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.vaccination-by-age-heading {
+  color: #94a3b8;
+  font-family: 'Roboto';
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+***********************************VACCINATION BY AGE****************************
+INDEX.JS
+import {PieChart, Pie, Legend, Cell} from 'recharts'
+
+import './index.css'
+
+const VaccinationByGender = props => {
+  const {vaccinationByGenderData} = props
+
+  return (
+    <div className="vaccination-by-gender-block">
+      <h1 className="heading">Vaccination by gender</h1>
+      <PieChart width={1000} height={300}>
+        <Pie
+          cx="50%"
+          cy="60%"
+          data={vaccinationByGenderData}
+          startAngle={180}
+          endAngle={0}
+          innerRadius="30%"
+          outerRadius="60%"
+          dataKey="count"
+        >
+          <Cell name="Male" fill="#f54394" />
+          <Cell name="Female" fill="#5a8dee" />
+          <Cell name="Others" fill="#2cc6c6" />
+        </Pie>
+        <Legend
+          iconType="circle"
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+          wrapperStyle={{fontSize: 12, fontFamily: 'Roboto'}}
+        />
+      </PieChart>
+    </div>
+  )
+}
+
+export default VaccinationByGender
+
+index.css
+.vaccination-by-gender-block {
+  display: flex;
+  flex-direction: column;
+  background-color: #1c1c2b;
+  margin-bottom: 20px;
+  padding: 20px;
+  justify-content: center;
+}
+
+.heading {
+  color: #94a3b8;
+  font-family: 'Roboto';
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+************************************VACCINATION COVERAGE*********************
+index.js
+import {BarChart, Bar, XAxis, YAxis, Legend} from 'recharts'
+
+import './index.css'
+
+const VaccinationCoverage = props => {
+  const dataFormatter = number => {
+    if (number > 1000) {
+      return `${(number / 1000).toString()}k`
+    }
+    return number.toString()
+  }
+  const {vaccinationCoverageData} = props
+
+  return (
+    <div className="coverage-container">
+      <h1 className="heading">Vaccination Coverage</h1>
+      <BarChart
+        width={900}
+        height={400}
+        data={vaccinationCoverageData}
+        margin={{
+          top: 5,
+        }}
+      >
+        <XAxis
+          dataKey="vaccineDate"
+          tick={{
+            stroke: '#6c757d',
+            strokeWidth: 1,
+            fontSize: 15,
+            fontFamily: 'Roboto',
+          }}
+        />
+        <YAxis
+          tickFormatter={dataFormatter}
+          tick={{
+            stroke: '#6c757d',
+            strokeWidth: 0.5,
+            fontSize: 15,
+            fontFamily: 'Roboto',
+          }}
+        />
+        <Legend
+          wrapperStyle={{
+            paddingTop: 20,
+            textAlign: 'center',
+            fontSize: 12,
+            fontFamily: 'Roboto',
+          }}
+        />
+        <Bar
+          dataKey="dose1"
+          name="Dose 1"
+          fill="#5a8dee"
+          radius={[10, 10, 0, 0]}
+          barSize="20%"
+        />
+        <Bar
+          dataKey="dose2"
+          name="Dose 2"
+          fill="#f54394"
+          radius={[5, 5, 0, 0]}
+          barSize="20%"
+        />
+      </BarChart>
+    </div>
+  )
+}
+
+export default VaccinationCoverage
+**************
+index.css
+
+.coverage-container {
+  display: flex;
+  flex-direction: column;
+  background-color: #1c1c2b;
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+.heading {
+  color: #94a3b8;
+  font-family: 'Roboto';
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+
+
